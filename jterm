@@ -1,0 +1,65 @@
+#!/usr/bin/perl
+# Copyright 1997 Jim Radford
+# Verstion 3.0
+#use strict;
+
+$0 =~ s@.*/@@;
+
+my $serial = shift || ($0 eq 'com2' ? "/dev/ttyS1" : "/dev/ttyS0");
+my $speed  = shift || 115200;
+
+eval 'use Term::ReadLine;1;' or eval 'sub Term::ReadLine::new {sub Term::ReadLine::readline {print STDERR $_[1]; my $f=<>;chomp $f;$f}; bless {},Term::ReadLine}';
+
+eval 'use Term::ReadKey;1;' and $SIG{WINCH} = sub {my $wc=sprintf(";%dx%d\r", GetTerminalSize()); 
+                                                   length $wc == syswrite SERIAL, $wc, length($wc) or die "$0: winch: $!"; };
+
+open(SERIAL,"+>$serial") or die "$0: couldn't open $serial: $!\n";
+
+system "stty raw -echo parmrk ispeed $speed ospeed $speed <$serial >$serial 2>&1";
+
+sub raw    {system "stty raw -echo </dev/tty >/dev/tty 2>&1";} # unbuffer STDIN
+sub cooked {system "stty -raw echo </dev/tty >/dev/tty 2>&1";} # rebuffer STDIN
+
+BEGIN { &raw }
+
+my $q = '';
+my($rin,$rout) = ('',''); vec($rin,fileno(STDIN),1) = vec($rin,fileno(SERIAL),1) = 1;
+while(my $n = select($rout=$rin, undef, undef, undef)) {
+    next if $n < 0;
+    if(vec($rout,fileno(STDIN),1)) {
+        my($in) = '';
+        my($len) = sysread STDIN,$in,200 or die "$0: key read: $!\r\n";
+        
+        my @in;
+        for (@in = split //, $in) {
+            my $state if undef; # static variable trick
+            if (defined $state and $state eq "wait for command") {
+                /~/ && next;
+                s/\.// && exit 0;
+                s/x// and &cooked,($xmodem = new Term::ReadLine($0)->readline("xmodem file> ")),&raw;
+                s/.// && print STDERR "Expecting '~', '?', or '.'.\r\n";
+                $state = "wait for tilde";
+            } elsif (/\r/) {
+                $state = "wait for tilde";
+            } elsif ((!defined $state or $state eq "wait for tilde") and s/~//) {
+                $state = "wait for command";
+            } else {
+                $state = "wait for return";
+            }
+        }
+        $in = join '', @in; $len = length $in;
+
+        $len == syswrite SERIAL,$in,$len or die "$0: write: $!\r\n";
+    }
+    if(vec($rout,fileno(SERIAL),1)) {
+        my($in) = '';
+        my($len) = sysread SERIAL,$in,200 or die "$0: ser read: $!\r\n";
+#        my $quit = $in =~ s/\377\000\000.*//g; # Quit on break
+        length($in) == syswrite STDOUT,$in,length($in) or die "$0: write: $!\r\n";
+#       last if $quit;
+        #map{printf("%02x '%c'\r\n",ord($_),/\w/?ord($_):'.')} split //,$in;
+        $xmodem and &cooked,system("sx $xmodem <$serial >$serial"),&raw,undef $xmodem;
+    }
+}
+
+END   { &cooked; print "\n" }
