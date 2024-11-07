@@ -6,8 +6,10 @@
 use Getopt::Long;
 use Pod::Usage;
 
+my $quit_on_break = 0;
 GetOptions("h"    => sub { pod2usage(0) },
            "help" => sub { pod2usage(-exitval => 0, -verbose => 2) },
+           "quit-on-break!" => \$quit_on_break,
           ) or pod2usage(1);
 
 $0 =~ s@.*/@@;
@@ -61,9 +63,9 @@ while(my $n = select($rout=$rin, undef, undef, undef)) {
     if(vec($rout,fileno(SERIAL),1)) {
         my($in) = '';
         my($len) = sysread SERIAL,$in,200 or die "$0: ser read: $!\r\n";
-#        my $quit = $in =~ s/\377\000\000.*//g; # Quit on break
+        my $quit = $quit_on_break && $in =~ s/\377\000\000.*//g; # Quit on break
         length($in) == syswrite STDOUT,$in,length($in) or die "$0: write: $!\r\n";
-#       last if $quit;
+        last if $quit;
         #map{printf("%02x '%c'\r\n",ord($_),/\w/?ord($_):'.')} split //,$in;
         $xmodem and &cooked,system("sx $xmodem <$serial >$serial"),&raw,undef $xmodem;
     }
@@ -85,6 +87,7 @@ jterm [options] [<serial-device> [<baud-rate>]]
 
   Options:
     -h, --help           Show usage
+    --quit-on-break      Quit if the serial device sends a "break".
 
   If <serial-device> is not specified then '/dev/ttyS0' will be used.
   if <baud-rate> is not specified then 115200 will be used.
@@ -97,6 +100,12 @@ jterm [options] [<serial-device> [<baud-rate>]]
 =item B<-h>, B<--help>
 
 Print the usage and exit.
+
+=item B<--quit-on-break>
+
+If enabled, B<jterm> will quit when receiving a
+L<break|https://en.wikipedia.org/wiki/UART#Break_condition> from the serial
+device.
 
 =back
 
