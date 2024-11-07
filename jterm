@@ -15,10 +15,10 @@ eval 'use Term::ReadKey;1;' and $SIG{WINCH} = sub {my $wc=sprintf(";%dx%d\r", Ge
 
 open(SERIAL,"+>$serial") or die "$0: couldn't open $serial: $!\n";
 
-system "stty raw -echo parmrk ispeed $speed ospeed $speed <$serial >$serial 2>&1";
+system("stty raw -echo parmrk ispeed $speed ospeed $speed <$serial >$serial 2>&1") == 0 || die "Couldn't configure $serial";
 
-sub raw    {system "stty raw -echo </dev/tty >/dev/tty 2>&1";} # unbuffer STDIN
-sub cooked {system "stty -raw echo </dev/tty >/dev/tty 2>&1";} # rebuffer STDIN
+sub raw    {system("stty raw -echo </dev/tty >/dev/tty 2>&1") == 0 || die "Couldn't set raw mode on STDIN"    ;} # unbuffer STDIN
+sub cooked {system("stty -raw echo </dev/tty >/dev/tty 2>&1") == 0 || die "Couldn't set cooked mode on STDIN" ;} # rebuffer STDIN
 
 BEGIN { &raw }
 
