@@ -5,6 +5,7 @@
 
 use Getopt::Long;
 use Pod::Usage;
+use IPC::Cmd qw(can_run);
 
 my $quit_on_break = 0;
 GetOptions("h"    => sub { pod2usage(0) },
@@ -45,7 +46,8 @@ while(my $n = select($rout=$rin, undef, undef, undef)) {
             if (defined $state and $state eq "wait for command") {
                 /~/ && next;
                 s/\.// && exit 0;
-                s/x// and &cooked,($xmodem = new Term::ReadLine($0)->readline("xmodem file> ")),&raw;
+                s/x// and can_run('sx') and &cooked,($xmodem = new Term::ReadLine($0)->readline("xmodem file> ")),&raw;
+                s/x// and !can_run('sx') and print STDERR "Can't send with xmodem: 'xs' binary is not available (try installing the 'lrzsz' package)";
                 s/.// && print STDERR "Expecting '~', '?', or '.'.\r\n";
                 $state = "wait for tilde";
             } elsif (/\r/) {
