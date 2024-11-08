@@ -9,7 +9,7 @@ use IPC::Cmd qw(can_run);
 
 my $quit_on_break = 0;
 GetOptions("h"    => sub { pod2usage(0) },
-           "help" => sub { pod2usage(-exitval => 0, -verbose => 2) },
+           "help" => sub { pod2usage(-exitval => 0, -verbose => 2, -perldocopt => '-oman') },
            "quit-on-break!" => \$quit_on_break,
           ) or pod2usage(1);
 
