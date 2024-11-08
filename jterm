@@ -120,9 +120,23 @@ Once B<jterm> connects it will capture I<all> terminal input—this includes
 keys that are normally used for job control (C<Control-C>, C<Control-Z>,
 C<Control-\>, etc).
 
-B<To quit jterm enter C<~.> on a new line.> Note that this is also the
+=head2 Quitting
+
+B<To quit jterm enter C<~.> on a new line.>
+
+B<NOTE>: C<~.> is also the
 sequence that B<ssh> uses to disconnect so if you are running jterm from an
 ssh session then you will need to enter 2 tildes (C<~~>) (the ssh client
 will see the 2 tildes and only send one across the ssh connection).
+
+=head2 Sending A File With XMODEM
+
+To send a file over the serial port via the L<XMODEM
+protocol|https://en.wikipedia.org/wiki/XMODEM>, enter C<~x> on a new line
+(see note above). B<jterm> will prompt you for a filename and will then
+attempt to send the specified file with the B<sx> binary. This is part of
+L<lrzsz|https://ohse.de/uwe/software/lrzsz.html> which should be available
+in your local package manager.
+
 
 =cut
