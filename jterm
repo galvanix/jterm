@@ -24,7 +24,7 @@ eval 'use Term::ReadKey;1;' and $SIG{WINCH} = sub {my $wc=sprintf(";%dx%d\r", Ge
 
 open(SERIAL,"+>$serial") or die "$0: couldn't open $serial: $!\n";
 
-system("stty raw -echo parmrk ispeed $speed ospeed $speed <$serial >$serial 2>&1") == 0 || die "Couldn't configure $serial";
+system('sh', '-c', 'stty raw -echo parmrk ispeed "$2" ospeed "$2" <"$1" >"$1" 2>&1', 'sh', $serial, $speed) == 0 || die "Couldn't configure $serial";
 
 sub raw    {system("stty raw -echo </dev/tty >/dev/tty 2>&1") == 0 || die "Couldn't set raw mode on STDIN"    ;} # unbuffer STDIN
 sub cooked {system("stty -raw echo </dev/tty >/dev/tty 2>&1") == 0 || die "Couldn't set cooked mode on STDIN" ;} # rebuffer STDIN
@@ -67,7 +67,7 @@ while(my $n = select($rout=$rin, undef, undef, undef)) {
         length($in) == syswrite STDOUT,$in,length($in) or die "$0: write: $!\r\n";
         last if $quit;
         #map{printf("%02x '%c'\r\n",ord($_),/\w/?ord($_):'.')} split //,$in;
-        $xmodem and &cooked,system("sx $xmodem <$serial >$serial"),&raw,undef $xmodem;
+        $xmodem and &cooked,system("sh", "-c" , 'sx "$2" <"$1" >"$1"', 'sh', $serial, $xmodem),&raw,undef $xmodem;
     }
 }
 
